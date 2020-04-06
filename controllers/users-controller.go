@@ -9,30 +9,37 @@ import (
 	"strconv"
 )
 
-func GetUser(c *gin.Context) {
-	userId, userErr := strconv.ParseInt(c.Param("user_id"), 10, 64)
+
+func getUserId(userIdParam string)(int64, *errors.RestError){
+	userId, userErr := strconv.ParseInt(userIdParam, 10, 64)
 
 	if userErr != nil {
 		// #TODO handle json error
 		err := errors.NewBadRequestError("user id should be a number")
-		c.JSON(err.Status, err)
-		return
+		return 0, err
 	}
+	return userId, nil
+}
 
+func Get(c *gin.Context) {
+	userId, idErr := getUserId(c.Param("user_id"))
+	if idErr != nil {
+		c.JSON(idErr.Status, idErr)
+	}
 	result, getErr := services.GetUser(userId)
 	if getErr != nil {
-		// #TODO handle save error
+		// #TODO handle get error
 		c.JSON(getErr.Status, getErr)
 		return
 	}
 	c.JSON(http.StatusOK, result)
 }
 
-func SearchUser(c *gin.Context)  {
+func Search(c *gin.Context)  {
 	c.String(http.StatusNotImplemented, "Implement me!")
 }
 
-func CreateUser(c *gin.Context)  {
+func Create(c *gin.Context)  {
 	var user users.User
 	if err := c.ShouldBindJSON(&user); err != nil {
 		// #TODO handle json error
@@ -50,7 +57,7 @@ func CreateUser(c *gin.Context)  {
 	c.JSON(http.StatusCreated, result)
 }
 
-func UpdateUser(c *gin.Context)  {
+func Update(c *gin.Context)  {
 	userId, userErr := strconv.ParseInt(c.Param("user_id"), 10, 64)
 
 	if userErr != nil {
@@ -72,10 +79,30 @@ func UpdateUser(c *gin.Context)  {
 
 	isPartial := c.Request.Method == http.MethodPatch
 
-	result, updateErr := services.UpdateUser(isPartial, user)
-	if updateErr != nil {
-		c.JSON(updateErr.Status, updateErr)
+	result, err := services.UpdateUser(isPartial, user)
+	if err != nil {
+		c.JSON(err.Status, err)
+		return
 	}
 
 	c.JSON(http.StatusOK, result)
+}
+
+func Delete(c *gin.Context) {
+	userId, idErr := getUserId(c.Param("user_id"))
+	if idErr != nil {
+		c.JSON(idErr.Status, idErr)
+	}
+	_, getErr := services.GetUser(userId)
+	if getErr != nil {
+		// #TODO handle get error
+		c.JSON(getErr.Status, getErr)
+		return
+	}
+
+	if err := services.DeleteUser(userId); err != nil {
+		c.JSON(err.Status, err)
+		return
+	}
+	c.JSON(http.StatusOK, map[string]string{"status":"deleted"})
 }
