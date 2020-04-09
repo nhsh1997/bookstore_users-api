@@ -12,11 +12,13 @@ var (
 )
 
 const (
-	queryInsertUser = "INSERT INTO users(first_name, last_name, email, date_created) VALUES (?, ?, ?, ?);"
+	queryInsertUser = "INSERT INTO users(first_name, last_name, email, date_created, status, password) VALUES (?, ?, ?, ?, ?, ?);"
 	queryUpdateUser = "UPDATE users SET first_name=?, last_name=?, email=? WHERE id=?"
-	queryGetUser = "SELECT id, first_name, last_name, email, date_created FROM users WHERE id=?;"
+	queryGetUser = "SELECT id, first_name, last_name, email, status, date_created FROM users WHERE id=?;"
 	queryDeleteUser = "DELETE FROM users WHERE id=?;"
+	queryFindUserByStatus = "SELECT id, first_name, last_name, email, date_created, status FROM users WHERE status=?;"
 )
+
 
 func (user *User) Get() *errors.RestError {
 	statement, err := users_db.Client.Prepare(queryGetUser)
@@ -27,7 +29,7 @@ func (user *User) Get() *errors.RestError {
 
 	result := statement.QueryRow(user.ID)
 
-	if err := result.Scan(&user.ID, &user.FirstName, &user.LastName, &user.Email, &user.DateCreated); err != nil {
+	if err := result.Scan(&user.ID, &user.FirstName, &user.LastName, &user.Email, &user.Status, &user.DateCreated); err != nil {
 		return mysql_utils.ParseError(err)
 	}
 
@@ -40,7 +42,7 @@ func (user *User) Save() *errors.RestError {
 	}
 	defer statement.Close()
 
-	insertResult, saveErr := statement.Exec(user.FirstName, user.LastName, user.Email, user.DateCreated)
+	insertResult, saveErr := statement.Exec(user.FirstName, user.LastName, user.Email, user.DateCreated, user.Status, user.Password)
 	if saveErr != nil {
 		return mysql_utils.ParseError(saveErr)
 	}
@@ -87,4 +89,32 @@ func (user *User) Delete() *errors.RestError  {
 	}
 
 	return nil
+}
+
+func (user *User) FindByStatus(status string) ([]User, *errors.RestError) {
+	statement, err := users_db.Client.Prepare(queryFindUserByStatus)
+	if err != nil {
+		return nil, errors.NewInternalServerError(err.Error())
+	}
+	defer statement.Close()
+
+	rows, err := statement.Query(status)
+	if err != nil {
+		return nil, errors.NewInternalServerError(err.Error())
+	}
+	defer rows.Close()
+
+	results := make([]User, 0)
+
+	for rows.Next(){
+		var user User
+		if err := rows.Scan(&user.ID, &user.FirstName, &user.LastName, &user.Email, &user.DateCreated, &user.Status); err != nil {
+			return nil, mysql_utils.ParseError(err)
+		}
+		results = append(results, user)
+	}
+	if len(results) == 0 {
+		return nil, errors.NewNotFoundError(fmt.Sprintf("no users matching status %s", status))
+	}
+	return results, nil
 }
