@@ -7,7 +7,23 @@ import (
 	"github.com/nhsh1997/bookstore_users-api/utils/errors"
 )
 
-func GetUser(userId int64)  (*users.User, *errors.RestError)  {
+var (
+	UsersServices userServiceInterface = &userService{}
+)
+
+type userService struct {
+}
+
+type userServiceInterface interface {
+	GetUser(int64)  (*users.User, *errors.RestError)
+	CreateUser(users.User) (*users.User, *errors.RestError)
+	UpdateUser(bool, users.User) (*users.User, *errors.RestError)
+	DeleteUser(int64) *errors.RestError
+	Search(string) (users.Users, *errors.RestError)
+}
+
+
+func (s *userService) GetUser(userId int64)  (*users.User, *errors.RestError)  {
 	result := &users.User{
 		ID: userId,
 	}
@@ -18,7 +34,7 @@ func GetUser(userId int64)  (*users.User, *errors.RestError)  {
 	return result, nil
 }
 
-func CreateUser(user users.User) (*users.User, *errors.RestError)  {
+func  (s *userService) CreateUser(user users.User) (*users.User, *errors.RestError)  {
 	if err := user.Validate(); err != nil {
 		return nil, err
 	}
@@ -30,8 +46,8 @@ func CreateUser(user users.User) (*users.User, *errors.RestError)  {
 	return &user, nil
 }
 
-func UpdateUser(isPartial bool, user users.User) (*users.User, *errors.RestError)  {
-	current, err := GetUser(user.ID)
+func  (s *userService) UpdateUser(isPartial bool, user users.User) (*users.User, *errors.RestError)  {
+	current, err := s.GetUser(user.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +74,7 @@ func UpdateUser(isPartial bool, user users.User) (*users.User, *errors.RestError
 	return current, nil
 }
 
-func DeleteUser(userId int64) *errors.RestError {
+func  (s *userService) DeleteUser(userId int64) *errors.RestError {
 	user := &users.User{ID: userId}
 	if err := user.Delete(); err != nil {
 		return err
@@ -66,7 +82,7 @@ func DeleteUser(userId int64) *errors.RestError {
 	return nil
 }
 
-func Search(status string) (users.Users, *errors.RestError)  {
+func  (s *userService) Search(status string) (users.Users, *errors.RestError)  {
 	dao := &users.User{}
 	return dao.FindByStatus(status)
 }
