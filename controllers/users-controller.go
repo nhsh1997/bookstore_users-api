@@ -5,18 +5,18 @@ import (
 	"github.com/nhsh1997/bookstore_oauth-go/oauth"
 	"github.com/nhsh1997/bookstore_users-api/domain/users"
 	"github.com/nhsh1997/bookstore_users-api/services"
-	"github.com/nhsh1997/bookstore_users-api/utils/errors"
+	"github.com/nhsh1997/bookstore_utils-go/rest_errors"
 	"net/http"
 	"strconv"
 )
 
 
-func getUserId(userIdParam string)(int64, *errors.RestError){
+func getUserId(userIdParam string)(int64, *rest_errors.RestError){
 	userId, userErr := strconv.ParseInt(userIdParam, 10, 64)
 
 	if userErr != nil {
 		// #TODO handle json error
-		err := errors.NewBadRequestError("user id should be a number")
+		err := rest_errors.NewBadRequestError("user id should be a number")
 		return 0, err
 	}
 	return userId, nil
@@ -29,7 +29,7 @@ func Get(c *gin.Context) {
 	}
 
 	if callerId := oauth.GetCallerId(c.Request); callerId == 0 {
-		err := errors.RestError{
+		err := rest_errors.RestError{
 			Message: "resource not available",
 			Status:  http.StatusUnauthorized,
 		}
@@ -58,7 +58,7 @@ func Create(c *gin.Context)  {
 	var user users.User
 	if err := c.ShouldBindJSON(&user); err != nil {
 		// #TODO handle json error
-		restError := errors.NewBadRequestError("invalid json value")
+		restError := rest_errors.NewBadRequestError("invalid json value")
 		c.JSON(restError.Status, restError)
 		return
 	}
@@ -77,7 +77,7 @@ func Update(c *gin.Context)  {
 
 	if userErr != nil {
 		// #TODO handle json error
-		err := errors.NewBadRequestError("user id should be a number")
+		err := rest_errors.NewBadRequestError("user id should be a number")
 		c.JSON(err.Status, err)
 		return
 	}
@@ -85,7 +85,7 @@ func Update(c *gin.Context)  {
 	var user users.User
 	if err := c.ShouldBindJSON(&user); err != nil {
 		// #TODO handle json error
-		restError := errors.NewBadRequestError("invalid json value")
+		restError := rest_errors.NewBadRequestError("invalid json value")
 		c.JSON(restError.Status, restError)
 		return
 	}
@@ -136,7 +136,7 @@ func Search(c *gin.Context) {
 func Login(c *gin.Context)  {
 	var request users.LoginRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
-		restErr := errors.NewBadRequestError("invalid json body")
+		restErr := rest_errors.NewBadRequestError("invalid json body")
 		c.JSON(restErr.Status, restErr)
 		return
 	}
